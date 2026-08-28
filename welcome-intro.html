@@ -1,0 +1,600 @@
+<title>MaasaiGPT</title>
+<style>
+  :root {
+    --ground: #C7EBD5;
+    --ground-soft: #B4E1C5;
+    --ink: #1A2620;
+    --ink-soft: #55695D;
+    --line: #A0CDAE;
+    --accent: #33436B;
+    --accent-soft: #8E9CBB;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Serif 4", "Iowan Old Style", "Times New Roman", Georgia, serif;
+    overflow: hidden;
+  }
+
+  .stage {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    isolation: isolate;
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 55% at 50% 46%, var(--ground-soft) 0%, transparent 70%);
+    opacity: 0;
+    animation: vignette-in 2.4s ease-out forwards;
+    z-index: 0;
+  }
+
+  .center {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 1.5rem;
+  }
+
+  .mark {
+    position: relative;
+    width: clamp(84px, 12vw, 128px);
+    height: clamp(84px, 12vw, 128px);
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0.94);
+    animation: mark-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.15s;
+  }
+
+  .mark svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .type {
+    margin-top: clamp(1.4rem, 3vw, 2rem);
+    opacity: 0;
+    transform: translateY(6px);
+    animation: type-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.2s;
+  }
+
+  .eyebrow {
+    display: block;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+    color: var(--ink-soft);
+    letter-spacing: 0.01em;
+  }
+
+  .wordmark {
+    display: block;
+    font-weight: 600;
+    font-size: clamp(2.1rem, 6vw, 3.4rem);
+    letter-spacing: 0.005em;
+    line-height: 1.08;
+    margin-top: 0.18em;
+    text-wrap: balance;
+  }
+
+  .tagline {
+    margin-top: clamp(0.9rem, 2vw, 1.3rem);
+    font-size: clamp(0.85rem, 1.4vw, 0.98rem);
+    color: var(--ink-soft);
+    max-width: 30ch;
+    line-height: 1.5;
+    opacity: 0;
+    animation: tagline-in 1s ease-out forwards;
+    animation-delay: 1.05s;
+  }
+
+  .rule {
+    width: 28px;
+    height: 1px;
+    background: var(--accent-soft);
+    margin: clamp(1.6rem, 3vw, 2.2rem) 0 0;
+    opacity: 0;
+    animation: rule-in 0.8s ease-out forwards;
+    animation-delay: 1.3s;
+  }
+
+  .replay {
+    position: fixed;
+    top: clamp(1.25rem, 3vw, 2rem);
+    right: clamp(1.25rem, 4vw, 3.5rem);
+    z-index: 2;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    cursor: pointer;
+    padding: 0.5rem 0.8rem;
+    opacity: 0;
+    animation: tagline-in 1s ease-out forwards;
+    animation-delay: 1.6s;
+  }
+
+  .replay:hover, .replay:focus-visible {
+    color: var(--accent);
+  }
+
+  .replay:focus-visible {
+    outline: 1px solid var(--accent-soft);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  .rail {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.1rem, 2.4vw, 1.75rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rail-left {
+    left: clamp(1.25rem, 4vw, 3.5rem);
+    align-items: flex-start;
+  }
+
+  .rail-right {
+    right: clamp(1.25rem, 4vw, 3.5rem);
+    align-items: flex-end;
+  }
+
+  .rail-btn {
+    background: none;
+    border: 1px solid var(--line);
+    font-family: inherit;
+    font-size: clamp(0.82rem, 1.25vw, 0.95rem);
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    cursor: pointer;
+    padding: 0.5rem 0.85rem;
+    border-radius: 10px;
+    text-align: inherit;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: rail-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+  }
+
+  .rail-btn:hover,
+  .rail-btn:focus-visible {
+    background-color: #34473C;
+    border-color: #34473C;
+    color: #F2F7F3;
+  }
+
+  .rail-btn:focus-visible {
+    outline: 1px solid var(--accent-soft);
+    outline-offset: 2px;
+  }
+
+  .rail-left .rail-btn:nth-child(1) { animation-delay: 1.4s; }
+  .rail-left .rail-btn:nth-child(2) { animation-delay: 1.52s; }
+  .rail-left .rail-btn:nth-child(3) { animation-delay: 1.64s; }
+  .rail-right .rail-btn:nth-child(1) { animation-delay: 1.46s; }
+  .rail-right .rail-btn:nth-child(2) { animation-delay: 1.58s; }
+  .rail-right .rail-btn:nth-child(3) { animation-delay: 1.7s; }
+
+  @media (max-width: 960px) {
+    .rail { display: none; }
+  }
+
+  .topnav {
+    position: fixed;
+    top: clamp(1.25rem, 3vw, 2rem);
+    left: clamp(1.25rem, 4vw, 3.5rem);
+    z-index: 3;
+    display: flex;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0.3rem;
+    list-style: none;
+    background: #233D2D;
+    border-radius: 14px;
+    opacity: 0;
+    transform: translateY(-6px);
+    animation: topnav-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.2s;
+  }
+
+  .topnav-btn {
+    background: none;
+    border: none;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: clamp(0.72rem, 1vw, 0.8rem);
+    letter-spacing: 0.01em;
+    color: var(--ground);
+    cursor: pointer;
+    padding: 0.4rem 0.75rem;
+    white-space: nowrap;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  .topnav-btn:hover,
+  .topnav-btn:focus-visible {
+    background-color: #34473C;
+    color: #F6F2E8;
+  }
+
+  .topnav-btn:focus-visible {
+    outline: 1px solid var(--accent-soft);
+    outline-offset: 2px;
+  }
+
+
+  .chatbox {
+    position: fixed;
+    bottom: clamp(1.5rem, 4vw, 2.75rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    width: min(560px, calc(100vw - 3rem));
+    opacity: 0;
+    animation: chatbox-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 1.85s;
+  }
+
+  .chatbox-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.5rem 0.65rem 0.5rem 0.5rem;
+    box-shadow: 0 2px 14px rgba(26, 38, 32, 0.08);
+  }
+
+  .model-select {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .model-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: clamp(0.78rem, 1.1vw, 0.85rem);
+    color: var(--ink-soft);
+    cursor: pointer;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .model-select-btn:hover,
+  .model-select-btn:focus-visible,
+  .model-select.open .model-select-btn {
+    background: var(--ground-soft);
+    color: var(--ink);
+  }
+
+  .model-select-btn:focus-visible {
+    outline: 1px solid var(--accent-soft);
+    outline-offset: 2px;
+  }
+
+  .model-select-caret {
+    width: 11px;
+    height: 11px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .model-select.open .model-select-caret {
+    transform: rotate(180deg);
+  }
+
+  .model-select-menu {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    min-width: 180px;
+    margin: 0;
+    padding: 0.35rem;
+    list-style: none;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(26, 38, 32, 0.14);
+    opacity: 0;
+    transform: translateY(6px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+
+  .model-select.open .model-select-menu {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .model-select-menu li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    font-size: clamp(0.85rem, 1.2vw, 0.92rem);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .model-select-menu li:hover,
+  .model-select-menu li:focus-visible {
+    background: #34473C;
+    color: #F6F2E8;
+    outline: none;
+  }
+
+  .model-select-menu li .check {
+    opacity: 0;
+    font-size: 0.8rem;
+  }
+
+  .model-select-menu li[aria-selected="true"] .check {
+    opacity: 1;
+  }
+
+  .chatbox-divider {
+    width: 1px;
+    align-self: stretch;
+    margin: 0.15rem 0;
+    background: var(--line);
+    flex-shrink: 0;
+  }
+
+  .chatbox-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: none;
+    outline: none;
+    font-family: inherit;
+    font-size: clamp(0.9rem, 1.4vw, 1rem);
+    color: var(--ink);
+  }
+
+  .chatbox-input::placeholder {
+    color: #787D7A;
+    font-style: italic;
+    opacity: 1;
+  }
+
+  .chatbox-send {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #F6F2E8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .chatbox-send svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .chatbox-send:hover,
+  .chatbox-send:focus-visible {
+    background: #26314F;
+  }
+
+  .chatbox-send:focus-visible {
+    outline: 1px solid var(--accent-soft);
+    outline-offset: 2px;
+  }
+
+  @keyframes chatbox-in {
+    to { opacity: 1; }
+  }
+
+  @keyframes topnav-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes vignette-in {
+    to { opacity: 1; }
+  }
+
+  @keyframes mark-in {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes type-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes tagline-in {
+    to { opacity: 1; }
+  }
+
+  @keyframes rule-in {
+    to { opacity: 1; }
+  }
+
+  @keyframes rail-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vignette, .mark, .type, .tagline, .rule, .replay, .rail-btn, .chatbox, .topnav {
+      animation-duration: 0.01s !important;
+      animation-delay: 0s !important;
+      transform: none !important;
+    }
+  }
+</style>
+
+<div class="stage" id="stage">
+  <div class="vignette"></div>
+  <ul class="topnav">
+    <li><button class="topnav-btn" type="button">About the Creators</button></li>
+    <li><button class="topnav-btn" type="button">Support MaasaiGPT</button></li>
+    <li><button class="topnav-btn" type="button">Our Publicity</button></li>
+  </ul>
+  <ul class="rail rail-left">
+    <li><button class="rail-btn" type="button">Digital Library</button></li>
+    <li><button class="rail-btn" type="button">Cattle Herding Tool</button></li>
+    <li><button class="rail-btn" type="button">Record Audio</button></li>
+  </ul>
+  <ul class="rail rail-right">
+    <li><button class="rail-btn" type="button">Maasai Translator</button></li>
+    <li><button class="rail-btn" type="button">Weather</button></li>
+    <li><button class="rail-btn" type="button">Upload Document</button></li>
+  </ul>
+  <div class="center">
+    <div class="mark">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="MaasaiGPT mark">
+        <circle cx="100" cy="100" r="94" fill="none" stroke="#A0CDAE" stroke-width="2" />
+        <line x1="42" y1="130" x2="158" y2="130" stroke="#55695D" stroke-width="1.5" stroke-linecap="round" />
+        <rect x="97" y="86" width="6" height="45" rx="1.5" fill="#1A2620" />
+        <ellipse cx="100" cy="86" rx="40" ry="15" fill="#1A2620" />
+        <ellipse cx="100" cy="74" rx="28" ry="9" fill="#1A2620" />
+        <circle cx="64" cy="94" r="7" fill="#1A2620" />
+        <circle cx="136" cy="94" r="7" fill="#1A2620" />
+      </svg>
+    </div>
+    <div class="type">
+      <span class="eyebrow">Welcome to</span>
+      <span class="wordmark">MaasaiGPT</span>
+    </div>
+    <p class="tagline">Ask questions about Maasai culture and contribute knowledge.</p>
+    <div class="rule"></div>
+  </div>
+  <button class="replay" id="replay" type="button">Replay</button>
+  <form class="chatbox" id="chatbox">
+    <div class="chatbox-inner">
+      <div class="model-select" id="modelSelect">
+        <button class="model-select-btn" id="modelSelectBtn" type="button" aria-haspopup="listbox" aria-expanded="false">
+          <span id="modelSelectLabel">MaasaiGPT</span>
+          <svg class="model-select-caret" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        <ul class="model-select-menu" id="modelSelectMenu" role="listbox" aria-label="Choose a model">
+          <li role="option" aria-selected="true" data-model="MaasaiGPT" tabindex="0">MaasaiGPT<span class="check">✓</span></li>
+          <li role="option" aria-selected="false" data-model="KumeyaayGPT" tabindex="0">KumeyaayGPT<span class="check">✓</span></li>
+          <li role="option" aria-selected="false" data-model="KikuyuGPT" tabindex="0">KikuyuGPT<span class="check">✓</span></li>
+        </ul>
+      </div>
+      <div class="chatbox-divider"></div>
+      <input class="chatbox-input" type="text" placeholder="Ask anything about the Maasai!" aria-label="Ask anything about the Maasai" />
+      <button class="chatbox-send" type="submit" aria-label="Send">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        </svg>
+      </button>
+    </div>
+  </form>
+</div>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+<script>
+  document.getElementById('replay').addEventListener('click', function () {
+    var animated = document.querySelectorAll('.vignette, .mark, .type, .tagline, .rule, .replay, .rail-btn, .chatbox, .topnav');
+    animated.forEach(function (el) {
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = '';
+    });
+  });
+
+  document.getElementById('chatbox').addEventListener('submit', function (e) {
+    e.preventDefault();
+  });
+
+  (function () {
+    var wrap = document.getElementById('modelSelect');
+    var btn = document.getElementById('modelSelectBtn');
+    var menu = document.getElementById('modelSelectMenu');
+    var label = document.getElementById('modelSelectLabel');
+    var options = menu.querySelectorAll('li');
+
+    function closeMenu() {
+      wrap.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function openMenu() {
+      wrap.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+
+    function selectOption(item) {
+      options.forEach(function (li) { li.setAttribute('aria-selected', 'false'); });
+      item.setAttribute('aria-selected', 'true');
+      label.textContent = item.getAttribute('data-model');
+      closeMenu();
+      btn.focus();
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      wrap.classList.contains('open') ? closeMenu() : openMenu();
+    });
+
+    options.forEach(function (item) {
+      item.addEventListener('click', function () { selectOption(item); });
+      item.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectOption(item);
+        }
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!wrap.contains(e.target)) closeMenu();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeMenu();
+    });
+  })();
+</script>
